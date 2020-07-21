@@ -173,3 +173,4 @@ while waiting_for_input:
     print(' balance for {}: {:6.2f}'.format(owner, get_balance(owner)))
 else:
     print('finished')
+    print('change')
