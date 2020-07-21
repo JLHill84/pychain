@@ -12,6 +12,7 @@ class Wallet:
         self.private_key = private_key
         self.public_key = public_key
         
+
     def save_keys(self):
         if self.public_key != None and self.private_key != None:
             try:
@@ -20,7 +21,7 @@ class Wallet:
                     f.write('\n')
                     f.write(self.private_key)
             except (IOError, IndexError):
-                print('save failed :.(')
+                print('Saving wallet failed...')
 
     def load_keys(self):
         try:
@@ -31,12 +32,9 @@ class Wallet:
                 self.public_key = public_key
                 self.private_key = private_key
         except (IOError, IndexError):
-            print('load failed :(')
+            print('Loading wallet failed...')
 
     def generate_keys(self):
         private_key = RSA.generate(1024, Crypto.Random.new().read)
         public_key = private_key.publickey()
-        print(private_key)
-        print(public_key)
         return (binascii.hexlify(private_key.exportKey(format='DER')).decode('ascii'), binascii.hexlify(public_key.exportKey(format='DER')).decode('ascii'))
-    
