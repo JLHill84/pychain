@@ -8,13 +8,15 @@ from util.hash_util import hash_block
 from util.verification import Verification
 from block import Block
 from transaction import Transaction
+from wallet import Wallet
 
 MINING_REWARD = 10
 
 print(__name__)
 
+
 class Blockchain:
-   
+
     def __init__(self, hosting_node_id):
         genesis_block = Block(0, '', [], 100, 0)
         self.chain = [genesis_block]
@@ -26,10 +28,9 @@ class Blockchain:
     def chain(self):
         return self.__chain[:]
 
-    @chain.setter 
+    @chain.setter
     def chain(self, val):
         self.__chain = val
-
 
     def get_open_transactions(self):
         return self.__open_transactions[:]
@@ -42,7 +43,7 @@ class Blockchain:
                 updated_blockchain = []
                 for block in blockchain:
                     converted_tx = [Transaction(
-                        tx['sender'], tx['recipient'], tx['amount']) for tx in block['transactions']]
+                        tx['sender'], tx['recipient'], tx['signature'], tx['amount']) for tx in block['transactions']]
                     updated_block = Block(
                         block['index'], block['previous_hash'], converted_tx, block['proof'], block['timestamp'])
                     updated_blockchain.append(updated_block)
@@ -51,13 +52,13 @@ class Blockchain:
                 updated_transactions = []
                 for tx in open_transactions:
                     updated_transaction = Transaction(
-                        tx['sender'], tx['recipient'], tx['amount'])
+                        tx['sender'], tx['recipient'], tx['signature'], tx['amount'])
                     updated_transactions.append(updated_transaction)
                 self.__open_transactions = updated_transactions
         except (IOError, IndexError):
             pass
         finally:
-            print('Cleanup!')
+            print('cleanup')
 
     def save_data(self):
         try:
@@ -69,7 +70,7 @@ class Blockchain:
                 saveable_tx = [tx.__dict__ for tx in self.__open_transactions]
                 f.write(json.dumps(saveable_tx))
         except IOError:
-            print('Saving failed!')
+            print('save failed :(')
 
     def proof_of_work(self):
         last_block = self.__chain[-1]
@@ -100,11 +101,10 @@ class Blockchain:
             return None
         return self.__chain[-1]
 
-
-    def add_transaction(self, recipient, sender, amount=1.0):
+    def add_transaction(self, recipient, sender, signature, amount=1.0):
         if self.hosting_node == None:
             return False
-        transaction = Transaction(sender, recipient, amount)
+        transaction = Transaction(sender, recipient, signature, amount)
         if Verification.verify_transaction(transaction, self.get_balance):
             self.__open_transactions.append(transaction)
             self.save_data()
@@ -117,8 +117,12 @@ class Blockchain:
         last_block = self.__chain[-1]
         hashed_block = hash_block(last_block)
         proof = self.proof_of_work()
-        reward_transaction = Transaction('MINING', self.hosting_node, MINING_REWARD)
+        reward_transaction = Transaction(
+            'MINING', self.hosting_node, '', MINING_REWARD)
         copied_transactions = self.__open_transactions[:]
+        for tx in copied_transactions:
+            if not Wallet.verify_transaction(tx):
+                return False
         copied_transactions.append(reward_transaction)
         block = Block(len(self.__chain), hashed_block,
                       copied_transactions, proof)
